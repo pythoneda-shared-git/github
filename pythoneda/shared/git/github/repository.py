@@ -19,7 +19,9 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
-from github import Auth, Github
+import aiohttp
+import asyncio
+import json
 from pythoneda.shared import BaseObject
 from typing import Dict, Union
 
@@ -43,7 +45,6 @@ class Repository(BaseObject):
         """
         super().__init__()
         self._token = token
-        self._github = Github(auth=Auth.Token(token))
 
     @property
     def token(self) -> str:
@@ -54,49 +55,39 @@ class Repository(BaseObject):
         """
         return self._token
 
-    @property
-    def github(self) -> Github:
-        """
-        Retrieves the github.Github instance.
-        :return: Such instance.
-        :rtype: github.Github
-        """
-        return self._github
-
-    def create(
+    async def create(
         self,
+        org: str,
         name: str,
-        description: Union[str, github.GithubObject._NotSetType] = NotSet,
-        homepage: Union[str, github.GithubObject._NotSetType] = NotSet,
-        private: Union[bool, github.GithubObject._NotSetType] = NotSet,
-        visibility: Union[str, github.GithubObject._NotSetType] = NotSet,
-        hasIssues: Union[bool, github.GithubObject._NotSetType] = NotSet,
-        hasWiki: Union[bool, github.GithubObject._NotSetType] = NotSet,
-        hasDownloads: Union[bool, github.GithubObject._NotSetType] = NotSet,
-        hasProjects: Union[bool, github.GithubObject._NotSetType] = NotSet,
-        teamId: Union[int, github.GithubObject._NotSetType] = NotSet,
-        autoInit: Union[bool, github.GithubObject._NotSetType] = NotSet,
-        licenseTemplate: Union[str, github.GithubObject._NotSetType] = NotSet,
-        gitignoreTemplate: Union[str, github.GithubObject._NotSetType] = NotSet,
-        allowSquashMmerge: Union[bool, github.GithubObject._NotSetType] = NotSet,
-        allowMergeCommit: Union[bool, github.GithubObject._NotSetType] = NotSet,
-        allowRebaseMerge: Union[bool, github.GithubObject._NotSetType] = NotSet,
-        allowAutoMerge: Union[bool, github.GithubObject._NotSetType] = NotSet,
-        deleteBranchOnMerge: Union[bool, github.GithubObject._NotSetType] = NotSet,
-        useSquashPrTitleAsDefault: Union[
-            bool, github.GithubObject._NotSetType
-        ] = NotSet,
-        squashMergeCommitTitle: Union[str, github.GithubObject._NotSetType] = NotSet,
-        squashMergeCommitMessage: Union[str, github.GithubObject._NotSetType] = NotSet,
-        mergeCommitTitle: Union[str, github.GithubObject._NotSetType] = NotSet,
-        mergeCommitMessage: Union[str, github.GithubObject._NotSetType] = NotSet,
-        customProperties: Union[
-            Dict[str, str], github.GithubObject._NotSetType
-        ] = NotSet,
-    ) -> github.Repository.Repository:
+        description: str,
+        homepage: str,
+        private: bool = False,
+        visibility: str = "public",
+        hasIssues: bool = True,
+        hasWiki: bool = True,
+        hasDownloads: bool = True,
+        hasProjects: bool = True,
+        teamId: Union[int, None] = None,
+        autoInit: Union[bool, None] = True,
+        licenseTemplate: Union[str, None] = "gpl-3.0",
+        gitignoreTemplate: Union[str, None] = "",
+        allowSquashMerge: Union[bool, None] = True,
+        allowMergeCommit: Union[bool, None] = True,
+        allowRebaseMerge: Union[bool, None] = True,
+        allowAutoMerge: Union[bool, None] = True,
+        deleteBranchOnMerge: Union[bool, None] = True,
+        useSquashPrTitleAsDefault: Union[bool, None] = True,
+        squashMergeCommitTitle: Union[str, None] = "",
+        squashMergeCommitMessage: Union[str, None] = "",
+        mergeCommitTitle: Union[str, None] = "",
+        mergeCommitMessage: Union[str, None] = "",
+        customProperties: Union[Dict[str, str], None] = "",
+    ):  # -> github.Repository:
         """
         Creates a new repository.
-        :param name: The repository name.
+        :param org: The name of the organization.
+        :type org: str
+        :param name: The name of the repository.
         :type name: str
         :param description: A short description of the repository.
         :type description: str
@@ -147,32 +138,46 @@ class Repository(BaseObject):
         :param customProperties: The custom properties for the new repository. The keys are the custom property names, and the values are the corresponding custom property values.
         :type customProperties: Dict[str,str]
         """
-        return self.github.create_repo(
-            name,
-            description,
-            homepage,
-            private,
-            visibility,
-            hasIssues,
-            hasWiki,
-            hasDownloads,
-            hasProjects,
-            teamId,
-            autoInit,
-            licenseTemplate,
-            gitignoreTemplate,
-            allowSquashMmerge,
-            allowMergeCommit,
-            allowRebaseMerge,
-            allowAutoMerge,
-            deleteBranchOnMerge,
-            useSquashPrTitleAsDefault,
-            squashMergeCommitTitle,
-            squashMergeCommitMessage,
-            mergeCommitTitle,
-            mergeCommitMessage,
-            customProperties,
-        )
+        async with aiohttp.ClientSession() as session:
+            headers = {
+                "Authorization": f"token {self.token}",
+                "Content-Type": "application/json",
+            }
+            url = f"https://api.github.com/orgs/{org}/repos"
+            data = {
+                "name": name,
+                "description": description,
+                "private": private,
+                "visibility": visibility,
+                "hasIssues": hasIssues,
+                "hasWiki": hasWiki,
+                "hasDownloads": hasDownloads,
+                "hasProjects": hasProjects,
+                "teamId": teamId,
+                "autoInit": autoInit,
+                "licenseTemplate": licenseTemplate,
+                "gitignoreTemplate": gitignoreTemplate,
+                "allowSquashMerge": allowSquashMerge,
+                "allowMergeCommit": allowMergeCommit,
+                "allowRebaseMerge": allowRebaseMerge,
+                "allowAutoMerge": allowAutoMerge,
+                "deleteBranchOnMerge": deleteBranchOnMerge,
+                "useSquashPrTitleAsDefault": useSquashPrTitleAsDefault,
+                "squashMergeCommitTitle": squashMergeCommitTitle,
+                "squashMergeCommitMessage": squashMergeCommitMessage,
+                "mergeCommitTitle": mergeCommitTitle,
+                "mergeCommitMessage": mergeCommitMessage,
+                "customProperties": customProperties,
+            }
+            async with session.post(
+                url, headers=headers, data=json.dumps(data)
+            ) as response:
+                if response.status in [200, 201]:
+                    return (
+                        await response.json()
+                    )  # This will contain the newly created repository's information
+                else:
+                    return f"Error: {response.status}, {await response.text()}"
 
 
 # vim: syntax=python ts=4 sw=4 sts=4 tw=79 sr et
