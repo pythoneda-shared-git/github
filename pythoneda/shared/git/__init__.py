@@ -1,8 +1,8 @@
 # vim: set fileencoding=utf-8
 """
-pythoneda/shared/github/__init__.py
+pythoneda/shared/git/__init__.py
 
-This file ensures pythoneda.shared.github is a package.
+This file ensures pythoneda.shared.git is a namespace.
 
 Copyright (C) 2024-today rydnr's pythoneda-shared-git/github
 
@@ -20,9 +20,6 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 __path__ = __import__("pkgutil").extend_path(__path__, __name__)
-
-from .repository import Repository
-
 # vim: syntax=python ts=4 sw=4 sts=4 tw=79 sr et
 # Local Variables:
 # mode: python
