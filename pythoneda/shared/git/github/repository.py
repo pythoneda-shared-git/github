@@ -22,7 +22,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import aiohttp
 import asyncio
 import json
-from pythoneda.shared import BaseObject
+from pythoneda.shared import attribute, BaseObject, sensitive
 from typing import Dict, Union
 
 
@@ -47,6 +47,8 @@ class Repository(BaseObject):
         self._token = token
 
     @property
+    @attribute
+    @sensitive
     def token(self) -> str:
         """
         Retrieves the github token.
@@ -59,8 +61,8 @@ class Repository(BaseObject):
         self,
         org: str,
         name: str,
-        description: str,
-        homepage: str,
+        description: str = "",
+        homepage: str = "",
         private: bool = False,
         visibility: str = "public",
         hasIssues: bool = True,
@@ -140,7 +142,7 @@ class Repository(BaseObject):
         """
         async with aiohttp.ClientSession() as session:
             headers = {
-                "Authorization": f"token {self.token}",
+                "Authorization": f"token {self.token.get()}",
                 "Content-Type": "application/json",
             }
             url = f"https://api.github.com/orgs/{org}/repos"
