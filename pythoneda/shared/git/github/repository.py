@@ -171,15 +171,21 @@ class Repository(BaseObject):
                 "mergeCommitMessage": mergeCommitMessage,
                 "customProperties": customProperties,
             }
+
             async with session.post(
                 url, headers=headers, data=json.dumps(data)
             ) as response:
-                if response.status in [200, 201]:
-                    return (
-                        await response.json()
-                    )  # This will contain the newly created repository's information
+                json_response = await response.json()
+                bad_credentials = (
+                    json_response.get("message", None) == "Bad credentials"
+                )
+                result = json_response
+                if response.status in [200, 201] and not bad_credentials:
+                    result["__error__"] = False
                 else:
-                    return f"Error: {response.status}, {await response.text()}"
+                    result["__error__"] = True
+
+            return result
 
 
 # vim: syntax=python ts=4 sw=4 sts=4 tw=79 sr et
