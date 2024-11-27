@@ -19,45 +19,25 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
-import aiohttp
-import asyncio
-import json
-from pythoneda.shared import attribute, BaseObject, sensitive
+from pythoneda.shared import attribute, BaseObject, primary_key_attribute
+from pythoneda.shared.git import GitRepo
 from typing import Dict, Union
 
 
-class Repository(BaseObject):
+class Repository(GitRepo):
     """
-    Interacts with the /orgs/[org]/repos endpoint of github API.
+    Represents Github repositories.
 
     Class name: Repository
 
     Responsibilities:
-        - Know how to use the github API to manage repositories.
+        - Provides Github-specific Git repository logic.
 
     Collaborators:
         - None
     """
 
-    def __init__(self, token: str):
-        """
-        Creates a new Repository instance.
-        """
-        super().__init__()
-        self._token = token
-
-    @property
-    @attribute
-    @sensitive
-    def token(self) -> str:
-        """
-        Retrieves the github token.
-        :return: Such token.
-        :rtype: str
-        """
-        return self._token
-
-    async def create(
+    def __init__(
         self,
         org: str,
         name: str,
@@ -84,9 +64,9 @@ class Repository(BaseObject):
         mergeCommitTitle: Union[str, None] = "",
         mergeCommitMessage: Union[str, None] = "",
         customProperties: Union[Dict[str, str], None] = "",
-    ):  # -> github.Repository:
+    ):
         """
-        Creates a new repository.
+        Creates a new Repository instance.
         :param org: The name of the organization.
         :type org: str
         :param name: The name of the repository.
@@ -140,52 +120,300 @@ class Repository(BaseObject):
         :param customProperties: The custom properties for the new repository. The keys are the custom property names, and the values are the corresponding custom property values.
         :type customProperties: Dict[str,str]
         """
-        async with aiohttp.ClientSession() as session:
-            headers = {
-                "Authorization": f"token {self.token.get()}",
-                "Content-Type": "application/json",
-            }
-            url = f"https://api.github.com/orgs/{org}/repos"
-            data = {
-                "name": name,
-                "description": description,
-                "private": private,
-                "visibility": visibility,
-                "hasIssues": hasIssues,
-                "hasWiki": hasWiki,
-                "hasDownloads": hasDownloads,
-                "hasProjects": hasProjects,
-                "teamId": teamId,
-                "autoInit": autoInit,
-                "licenseTemplate": licenseTemplate,
-                "gitignoreTemplate": gitignoreTemplate,
-                "allowSquashMerge": allowSquashMerge,
-                "allowMergeCommit": allowMergeCommit,
-                "allowRebaseMerge": allowRebaseMerge,
-                "allowAutoMerge": allowAutoMerge,
-                "deleteBranchOnMerge": deleteBranchOnMerge,
-                "useSquashPrTitleAsDefault": useSquashPrTitleAsDefault,
-                "squashMergeCommitTitle": squashMergeCommitTitle,
-                "squashMergeCommitMessage": squashMergeCommitMessage,
-                "mergeCommitTitle": mergeCommitTitle,
-                "mergeCommitMessage": mergeCommitMessage,
-                "customProperties": customProperties,
-            }
+        super().__init__(f"https://github.com/{org}/{name}")
+        self._org = org
+        self._name = name
+        self._description = description
+        self._homepage = homepage
+        self._private = private
+        self._visibility = visibility
+        self._has_issues = hasIssues
+        self._has_projects = hasProjects
+        self._has_wiki = hasWiki
+        self._has_downloads = hasDownloads
+        self._team_id = teamId
+        self._auto_init = autoInit
+        self._license_template = licenseTemplate
+        self._gitignore_template = gitignoreTemplate
+        self._allow_squash_merge = allowSquashMerge
+        self._allow_merge_commit = allowMergeCommit
+        self._allow_rebase_merge = allowRebaseMerge
+        self._allow_auto_merge = allowAutoMerge
+        self._delete_branch_on_merge = deleteBranchOnMerge
+        self._use_squash_pr_title_as_default = useSquashPrTitleAsDefault
+        self._squash_merge_commit_title = squashMergeCommitTitle
+        self._squash_merge_commit_message = squashMergeCommitMessage
+        self._merge_commit_title = mergeCommitTitle
+        self._merge_commit_message = mergeCommitMessage
+        self._custom_properties = customProperties
 
-            async with session.post(
-                url, headers=headers, data=json.dumps(data)
-            ) as response:
-                json_response = await response.json()
-                bad_credentials = (
-                    json_response.get("message", None) == "Bad credentials"
-                )
-                result = json_response
-                if response.status in [200, 201] and not bad_credentials:
-                    result["__error__"] = False
-                else:
-                    result["__error__"] = True
+    @property
+    @primary_key_attribute
+    def org(self) -> str:
+        """
+        Retrieves the organization name.
+        :return: Such name.
+        :rtype: str
+        """
+        return self._org
 
-            return result
+    @property
+    @primary_key_attribute
+    def name(self) -> str:
+        """
+        Retrieves the repository name.
+        :return: Such name.
+        :rtype: str
+        """
+        return self._name
+
+    @property
+    @attribute
+    def description(self) -> str:
+        """
+        Retrieves the repository description.
+        :return: Such description.
+        :rtype: str
+        """
+        return self._description
+
+    @property
+    @attribute
+    def homepage(self) -> str:
+        """
+        Retrieves the repository homepage.
+        :return: Such homepage.
+        :rtype: str
+        """
+        return self._homepage
+
+    @property
+    @attribute
+    def private(self) -> bool:
+        """
+        Retrieves the repository privacy.
+        :return: True if private.
+        :rtype: bool
+        """
+        return self._private
+
+    @property
+    @attribute
+    def visibility(self) -> str:
+        """
+        Retrieves the repository visibility.
+        :return: Such visibility.
+        :rtype: str
+        """
+        return self._visibility
+
+    @property
+    @attribute
+    def has_issues(self) -> bool:
+        """
+        Retrieves whether the repository has issues.
+        :return: True if issues are enabled.
+        :rtype: bool
+        """
+        return self._has_issues
+
+    @property
+    @attribute
+    def has_projects(self) -> bool:
+        """
+        Retrieves whether the repository has projects.
+        :return: True if projects are enabled.
+        :rtype: bool
+        """
+        return self._has_projects
+
+    @property
+    @attribute
+    def has_wiki(self) -> bool:
+        """
+        Retrieves whether the repository has a wiki.
+        :return: True if the wiki is enabled.
+        :rtype: bool
+        """
+        return self._has_wiki
+
+    @property
+    @attribute
+    def has_downloads(self) -> bool:
+        """
+        Retrieves whether the repository has downloads.
+        :return: True if downloads are enabled.
+        :rtype: bool
+        """
+        return self._has_downloads
+
+    @property
+    @attribute
+    def team_id(self) -> Union[int, None]:
+        """
+        Retrieves the team id.
+        :return: Such id.
+        :rtype: Union[int, None]
+        """
+        return self._team_id
+
+    @property
+    @attribute
+    def auto_init(self) -> Union[bool, None]:
+        """
+        Retrieves whether the repository is auto-initialized.
+        :return: True if auto-initialized.
+        :rtype: Union[bool, None]
+        """
+        return self._auto_init
+
+    @property
+    @attribute
+    def license_template(self) -> Union[str, None]:
+        """
+        Retrieves the license template.
+        :return: Such template.
+        :rtype: Union[str, None]
+        """
+        return self._license_template
+
+    @property
+    @attribute
+    def gitignore_template(self) -> Union[str, None]:
+        """
+        Retrieves the gitignore template.
+        :return: Such template.
+        :rtype: Union[str, None]
+        """
+        return self._gitignore_template
+
+    @property
+    @attribute
+    def allow_squash_merge(self) -> Union[bool, None]:
+        """
+        Retrieves whether squash-merging is allowed.
+        :return: True if allowed.
+        :rtype: Union[bool, None]
+        """
+        return self._allow_squash_merge
+
+    @property
+    @attribute
+    def allow_merge_commit(self) -> Union[bool, None]:
+        """
+        Retrieves whether merge commits are allowed.
+        :return: True if allowed.
+        :rtype: Union[bool, None]
+        """
+        return self._allow_merge_commit
+
+    @property
+    @attribute
+    def allow_rebase_merge(self) -> Union[bool, None]:
+        """
+        Retrieves whether rebase-merging is allowed.
+        :return: True if allowed.
+        :rtype: Union[bool, None]
+        """
+        return self._allow_rebase_merge
+
+    @property
+    @attribute
+    def allow_auto_merge(self) -> Union[bool, None]:
+        """
+        Retrieves whether auto-merging is allowed.
+        :return: True if allowed.
+        :rtype: Union[bool, None]
+        """
+        return self._allow_auto_merge
+
+    @property
+    @attribute
+    def delete_branch_on_merge(self) -> Union[bool, None]:
+        """
+        Retrieves whether branches are deleted on merge.
+        :return: True if deleted.
+        :rtype: Union[bool, None]
+        """
+        return self._delete_branch_on_merge
+
+    @property
+    @attribute
+    def use_squash_pr_title_as_default(self) -> Union[bool, None]:
+        """
+        Retrieves whether the squash PR title is used as default.
+        :return: True if used.
+        :rtype: Union[bool, None]
+        """
+        return self._use_squash_pr_title_as_default
+
+    @property
+    @attribute
+    def squash_merge_commit_title(self) -> Union[str, None]:
+        """
+        Retrieves the squash merge commit title.
+        :return: Such title.
+        :rtype: Union[str, None]
+        """
+        return self._squash_merge_commit_title
+
+    @property
+    @attribute
+    def squash_merge_commit_message(self) -> Union[str, None]:
+        """
+        Retrieves the squash merge commit message.
+        :return: Such message.
+        :rtype: Union[str, None]
+        """
+        return self._squash_merge_commit_message
+
+    @property
+    @attribute
+    def merge_commit_title(self) -> Union[str, None]:
+        """
+        Retrieves the merge commit title.
+        :return: Such title.
+        :rtype: Union[str, None]
+        """
+        return self._merge_commit_title
+
+    @property
+    @attribute
+    def merge_commit_message(self) -> Union[str, None]:
+        """
+        Retrieves the merge commit message.
+        :return: Such message.
+        :rtype: Union[str, None]
+        """
+        return self._merge_commit_message
+
+    @property
+    @attribute
+    def custom_properties(self) -> Union[Dict[str, str], None]:
+        """
+        Retrieves the custom properties.
+        :return: Such properties.
+        :rtype: Union[Dict[str, str], None]
+        """
+        return self._custom_properties
+
+    async def renamed_to(self, newName: str) -> bool:
+        """
+        Checks if this repository has been renamed.
+        :param newName: The new name.
+        :type newName: str
+        :return: True if renamed.
+        :rtype: bool
+        """
+        return True
+
+    async def rename_to(self, newName: str) -> None:
+        """
+        Renames this repository.
+        :param newName: The new name.
+        :type newName: str
+        """
+        pass
 
 
 # vim: syntax=python ts=4 sw=4 sts=4 tw=79 sr et
